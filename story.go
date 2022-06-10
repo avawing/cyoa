@@ -9,8 +9,6 @@ import (
 	"strings"
 )
 
-type Story map[string]Chapter
-
 var defaultHandlerTemplate = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,11 +77,6 @@ func init() {
 	tpl = template.Must(template.New("").Parse(defaultHandlerTemplate))
 }
 
-type handler struct {
-	s Story
-	t *template.Template
-}
-
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimSpace(r.URL.Path)
 	if path == "" || path == "/" {
@@ -96,7 +89,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// ok acts as a failsafe - if it's not there, it won't do the thing
 	// kind of opposite error first
 	if chapter, ok := h.s[path]; ok {
-		err := tpl.Execute(w, chapter)
+		err := h.t.Execute(w, chapter)
 		if err != nil {
 			log.Printf("%v", err)
 			http.Error(w, "Something went wrong...", http.StatusInternalServerError)
@@ -106,12 +99,13 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Not Found", http.StatusNotFound)
 }
 
-func NewHandler(s Story, t *template.Template) http.Handler {
-	if t == nil {
-		t = tpl
+func NewHandler(s Story, opts ...HandlerOption) http.Handler {
+	h := handler{s, tpl}
+	for _, opt := range opts {
+		opt(&h)
 	}
 	//go idiom, return structs - accept interfaces
-	return handler{s, t}
+	return h
 }
 
 func JsonStory(reader io.Reader) (Story, error) {
@@ -122,6 +116,21 @@ func JsonStory(reader io.Reader) (Story, error) {
 	}
 	return story, nil
 }
+
+func WithTemplate(t *template.Template) HandlerOption {
+	return func(h *handler) {
+		h.t = t
+	}
+}
+
+type HandlerOption func(h *handler)
+
+type handler struct {
+	s Story
+	t *template.Template
+}
+
+type Story map[string]Chapter
 
 type Chapter struct {
 	Title      string   `json:"title"`
