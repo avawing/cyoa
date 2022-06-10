@@ -25,8 +25,7 @@ func main() {
 		panic(err)
 	}
 
-	// why does GoLand not allowing imports??
-	h := cyoa.NewHandler(story)
+	h := cyoa.NewHandler(story, nil)
 	fmt.Printf("Starting server on %d \n", *port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), h))
 }

@@ -81,6 +81,7 @@ func init() {
 
 type handler struct {
 	s Story
+	t *template.Template
 }
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -105,9 +106,12 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Not Found", http.StatusNotFound)
 }
 
-func NewHandler(s Story) http.Handler {
+func NewHandler(s Story, t *template.Template) http.Handler {
+	if t == nil {
+		t = tpl
+	}
 	//go idiom, return structs - accept interfaces
-	return handler{s}
+	return handler{s, t}
 }
 
 func JsonStory(reader io.Reader) (Story, error) {
