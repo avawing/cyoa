@@ -4,15 +4,18 @@ import (
 	"cyoa"
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 )
 
 func main() {
 	// create flag for file
+	port := flag.Int("port", 3000, "the port to start application on")
 	filename := flag.String("file", "gopher.json", "json file containing CYOA Story")
 	flag.Parse()
 	// POINT to the filename
-	fmt.Printf("Using file in %s", *filename)
+	fmt.Printf("Using file in %s \n", *filename)
 
 	f, err := os.Open(*filename)
 
@@ -23,6 +26,7 @@ func main() {
 	}
 
 	// why does GoLand not allowing imports??
-
-	fmt.Printf("%+v", story)
+	h := cyoa.NewHandler(story)
+	fmt.Printf("Starting server on %d \n", *port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), h))
 }
