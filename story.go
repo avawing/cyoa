@@ -77,13 +77,19 @@ func init() {
 	tpl = template.Must(template.New("").Parse(defaultHandlerTemplate))
 }
 
-func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func defaultPathFn(r *http.Request) string {
 	path := strings.TrimSpace(r.URL.Path)
 	if path == "" || path == "/" {
 		path = "/intro"
 	}
 	// remove preceding slash
 	path = path[1:]
+	return path
+}
+
+func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	path := h.pathFn(r)
 
 	// anytime you check a map, returns value & boolean
 	// ok acts as a failsafe - if it's not there, it won't do the thing
@@ -100,7 +106,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewHandler(s Story, opts ...HandlerOption) http.Handler {
-	h := handler{s, tpl}
+	h := handler{s, tpl, defaultPathFn}
 	for _, opt := range opts {
 		opt(&h)
 	}
@@ -123,11 +129,18 @@ func WithTemplate(t *template.Template) HandlerOption {
 	}
 }
 
+func WithPathFunc(fn func(r *http.Request) string) HandlerOption {
+	return func(h *handler) {
+		h.pathFn = fn
+	}
+}
+
 type HandlerOption func(h *handler)
 
 type handler struct {
-	s Story
-	t *template.Template
+	s      Story
+	t      *template.Template
+	pathFn func(r *http.Request) string
 }
 
 type Story map[string]Chapter
